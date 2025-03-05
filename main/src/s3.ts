@@ -1,5 +1,5 @@
 import fs from "fs"
-import path, { resolve } from "path"
+import path from "path"
 import { S3 } from "aws-sdk"
 
 const s3 = new S3 ( {
