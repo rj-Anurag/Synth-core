@@ -1,5 +1,5 @@
-import fs, { writeFile } from "fs"
-import path from "path"
+import fs from "fs"
+import path, { resolve } from "path"
 import { S3 } from "aws-sdk"
 
 const s3 = new S3 ( {
@@ -33,4 +33,39 @@ export const getS3Folder =  async(key: string, localPath : string): Promise<void
             }
         }
     }
+}
+function writeFile(filePath: string, fileData:Buffer): Promise<void> {
+    return new Promise(async (resolve, reject) => {
+        await createFolder(path.dirname(filePath));
+        fs.writeFile(filePath, fileData , (err) => {
+            if(err) {
+                reject(err)
+            }
+            else{
+                resolve();
+            }
+        })
+    })
+}
+
+
+function createFolder(dirName: string):Promise<void> {
+    return new Promise(async (resolve, reject) => {
+        fs.mkdir(dirName, {recursive: true}, (err) => {
+            if(err){
+                reject(err);
+            }else{
+                resolve();
+            }
+        })
+    })
+}
+
+export const saveToS3 = async(key: string, filePath: string, content: string): Promise<void> => {
+    const params = {
+        Bucket: process.env.S3_BUCKET ?? "",
+        Key: `${key}${filePath}`,
+        Body: content
+    }
+    await s3.putObject(params).promise();
 }
