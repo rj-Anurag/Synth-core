@@ -34,6 +34,43 @@ export const getS3Folder =  async(key: string, localPath : string): Promise<void
         }
     }
 }
+
+export async function copyS3Folder(sourcePrefix: string, destinationPrefix: string, continuationToken?: string): Promise<void> {
+    try {
+        // List all objects in the source folder
+        const listParams = {
+            Bucket: process.env.S3_BUCKET ?? "",
+            Prefix: sourcePrefix,
+            ContinuationToken: continuationToken
+        };
+
+        const listedObjects = await s3.listObjectsV2(listParams).promise();
+
+        if (!listedObjects.Contents || listedObjects.Contents.length === 0) return;
+
+        for (const object of listedObjects.Contents) {
+            if (!object.Key) continue;
+            let destinationKey = object.Key.replace(sourcePrefix, destinationPrefix);
+            let copyParams = {
+                Bucket: process.env.S3_BUCKET ?? "",
+                CopySource: `${process.env.S3_BUCKET}/${object.Key}`,
+                Key: destinationKey
+            };
+            console.log(copyParams)
+
+            await s3.copyObject(copyParams).promise();
+            console.log(`Copied ${object.Key} to ${destinationKey}`);
+        }
+
+        if (listedObjects.IsTruncated) {
+            listParams.ContinuationToken = listedObjects.NextContinuationToken;
+            await copyS3Folder(sourcePrefix, destinationPrefix, continuationToken);
+        }
+    } catch (error) {
+        console.error('Error copying folder:', error);
+    }
+}
+
 function writeFile(filePath: string, fileData:Buffer): Promise<void> {
     return new Promise(async (resolve, reject) => {
         await createFolder(path.dirname(filePath));
