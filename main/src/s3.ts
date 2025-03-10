@@ -37,7 +37,7 @@ export const getS3Folder =  async(key: string, localPath : string): Promise<void
 
 export async function copyS3Folder(sourcePrefix: string, destinationPrefix: string, continuationToken?: string): Promise<void> {
     try {
-        // List all objects in the source folder
+        
         const listParams = {
             Bucket: process.env.S3_BUCKET ?? "",
             Prefix: sourcePrefix,
