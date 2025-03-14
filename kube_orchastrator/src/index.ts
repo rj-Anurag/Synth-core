@@ -26,3 +26,37 @@ const readAndParseKubeYaml = (filePath: string, replId: string):Array<any> => {
     return docs;
 
 }
+
+app.post("/start"), async (req : any, res : any) => {
+    const { userId, replId } = req.body;
+    const namespace = "default";
+    try {
+        const kubeManifests = readAndParseKubeYaml(path.join(__dirname, "../service.yaml"), replId);
+        for (const manifest of kubeManifests) {
+            switch (manifest.kind) {
+                case "Deployment":
+                    await appsV1Api.createNamespacedDeployment({ namespace, body: manifest });
+                    break;
+                case "Service":
+                    await coreV1Api.createNamespacedService({ namespace, body: manifest} );
+                    break;
+                case "Ingress":
+                    await networkingV1Api.createNamespacedIngress({ namespace, body: manifest});
+                    break;
+                default:
+                    console.log(`Unsupported kind: ${manifest.kind}`);
+            }
+        }
+        res.status(200).send({ message: "Resources created successfully" });
+    } catch (error) {
+        console.error("Failed to create resources", error);
+        res.status(500).send({ message: "Failed to create resources" });
+    }
+
+
+}
+
+const port = process.env.PORT || 3002;
+app.listen(port, () => {
+    console.log(`Listening on port: ${port}`);
+});
